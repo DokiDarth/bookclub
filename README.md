@@ -12,8 +12,19 @@ Then open http://localhost:3000
 
 ## Where the data lives
 
-`members.json`, right next to `server.js`. Plain JSON, safe to edit by hand or
-back up by copying the file.
+`members.db`, a SQLite database next to `server.js`. Back it up by copying that
+file, or inspect it with any SQLite tool:
+
+```
+sqlite3 members.db "SELECT name, joined FROM members ORDER BY joined"
+```
+
+SQLite is used through Node's built-in `node:sqlite` module, so there is still
+nothing to install.
+
+If an older `members.json` is present, the server imports it on first start and
+renames it to `members.json.backup`. That import runs only while the table is
+empty, so restarting never duplicates anyone.
 
 ## API
 

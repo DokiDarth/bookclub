@@ -1,6 +1,11 @@
 # Runtime data — the actual member list lives here, not in git.
-# Delete these two lines if you'd rather version the list too.
+members.db
+members.db-wal
+members.db-shm
+
+# Pre-SQLite data and its backup
 members.json
 members.json.tmp
+members.json.backup
 
 .DS_Store
