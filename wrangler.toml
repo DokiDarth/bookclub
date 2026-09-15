@@ -3,7 +3,7 @@ main = "worker.mjs"
 compatibility_date = "2025-01-01"
 
 # Serves everything in public/ (index.html). Requests under /api/ fall
-# through to worker.js.
+# through to worker.mjs.
 [assets]
 directory = "./public"
 binding = "ASSETS"
@@ -11,5 +11,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "bookclub"
-# Filled in by: npx wrangler d1 create bookclub
-database_id = "PASTE_DATABASE_ID_HERE"
+database_id = "ec1bc345-5d84-43ee-80f9-cdeb398301f9"
