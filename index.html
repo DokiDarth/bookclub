@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book Club Members</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #faf8f5; color: #221f1c;
+    display: flex; justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 480px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .count { color: #857c72; font-size: .875rem; margin: 0 0 24px; }
+  form { display: flex; gap: 8px; margin-bottom: 8px; }
+  input {
+    flex: 1; padding: 10px 12px; font: inherit;
+    border: 1px solid #ddd5cb; border-radius: 8px; background: #fff; color: inherit;
+  }
+  input:focus { outline: 2px solid #b0754a; outline-offset: -1px; border-color: transparent; }
+  button {
+    padding: 10px 16px; font: inherit; font-weight: 500; cursor: pointer;
+    border: 0; border-radius: 8px; background: #b0754a; color: #fff;
+  }
+  button:hover { background: #99633c; }
+  .error { color: #b3261e; font-size: .875rem; min-height: 20px; margin: 0 0 12px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 4px 12px 14px; border-bottom: 1px solid #ece5dc;
+  }
+  li .name { flex: 1; }
+  li .date { color: #857c72; font-size: .8125rem; }
+  .remove {
+    background: none; color: #a89e93; padding: 4px 8px; font-size: 1.125rem; line-height: 1;
+  }
+  .remove:hover { background: none; color: #b3261e; }
+  .remove.armed { color: #b3261e; font-size: .8125rem; font-weight: 500; }
+  .empty { color: #857c72; padding: 24px 0; text-align: center; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1816; color: #ece7e1; }
+    input { background: #252220; border-color: #3a3532; }
+    li { border-color: #2e2926; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Book Club</h1>
+  <p class="count" id="count"></p>
+
+  <form id="form">
+    <input id="name" placeholder="Add a member…" autocomplete="off" autofocus>
+    <button type="submit">Add</button>
+  </form>
+  <p class="error" id="error"></p>
+
+  <ul id="list"></ul>
+</div>
+
+<script>
+const $list = document.getElementById('list');
+const $count = document.getElementById('count');
+const $error = document.getElementById('error');
+const $name = document.getElementById('name');
+
+function fmt(iso) {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function render(members) {
+  $count.textContent = members.length === 1 ? '1 member' : members.length + ' members';
+  if (!members.length) {
+    $list.innerHTML = '<li class="empty">No members yet.</li>';
+    return;
+  }
+  $list.innerHTML = '';
+  for (const m of members) {
+    const li = document.createElement('li');
+
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = m.name;
+
+    const date = document.createElement('span');
+    date.className = 'date';
+    date.textContent = fmt(m.joined);
+
+    // two-step confirm: first click arms the button, second click removes
+    const btn = document.createElement('button');
+    btn.className = 'remove';
+    btn.type = 'button';
+    btn.textContent = '×';
+    btn.title = 'Remove ' + m.name;
+    btn.onclick = () => {
+      if (btn.dataset.armed) return remove(m);
+      disarmAll();
+      btn.dataset.armed = '1';
+      btn.classList.add('armed');
+      btn.textContent = 'Remove?';
+      btn.timer = setTimeout(disarmAll, 4000);
+    };
+
+    li.append(name, date, btn);
+    $list.append(li);
+  }
+}
+
+async function load() {
+  render(await (await fetch('/api/members')).json());
+}
+
+function disarmAll() {
+  for (const b of $list.querySelectorAll('.remove.armed')) {
+    clearTimeout(b.timer);
+    delete b.dataset.armed;
+    b.classList.remove('armed');
+    b.textContent = '×';
+  }
+}
+
+async function remove(m) {
+  await fetch('/api/members/' + encodeURIComponent(m.id), { method: 'DELETE' });
+  load();
+}
+
+document.getElementById('form').onsubmit = async (e) => {
+  e.preventDefault();
+  $error.textContent = '';
+  const name = $name.value.trim();
+  if (!name) return;
+
+  const res = await fetch('/api/members', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+
+  if (!res.ok) {
+    $error.textContent = (await res.json()).error;
+    return;
+  }
+  $name.value = '';
+  load();
+};
+
+load();
+</script>
+</body>
+</html>

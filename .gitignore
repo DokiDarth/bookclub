@@ -1,0 +1,6 @@
+# Runtime data — the actual member list lives here, not in git.
+# Delete these two lines if you'd rather version the list too.
+members.json
+members.json.tmp
+
+.DS_Store
