@@ -11,4 +11,8 @@ members.json
 members.json.tmp
 members.json.backup
 
+# wrangler's local state and build cache
+.wrangler/
+node_modules/
+
 .DS_Store
