@@ -1,0 +1,15 @@
+name = "bookclub"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Serves everything in public/ (index.html). Requests under /api/ fall
+# through to worker.js.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bookclub"
+# Filled in by: npx wrangler d1 create bookclub
+database_id = "PASTE_DATABASE_ID_HERE"

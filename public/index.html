@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>Book Club Members</title>
 <style>
   :root { color-scheme: light dark; }
@@ -41,32 +42,85 @@
   .remove:hover { background: none; color: #b3261e; }
   .remove.armed { color: #b3261e; font-size: .8125rem; font-weight: 500; }
   .empty { color: #857c72; padding: 24px 0; text-align: center; }
+  .hint { color: #857c72; font-size: .875rem; margin: 0 0 16px; }
+  .lock { margin-top: 28px; }
+  .lock button {
+    background: none; color: #857c72; padding: 0; font-size: .8125rem; font-weight: 400;
+    text-decoration: underline;
+  }
+  .lock button:hover { background: none; color: #221f1c; }
   @media (prefers-color-scheme: dark) {
     body { background: #1a1816; color: #ece7e1; }
     input { background: #252220; border-color: #3a3532; }
     li { border-color: #2e2926; }
+    .lock button:hover { color: #ece7e1; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Book Club</h1>
-  <p class="count" id="count"></p>
 
-  <form id="form">
-    <input id="name" placeholder="Add a member…" autocomplete="off" autofocus>
-    <button type="submit">Add</button>
-  </form>
-  <p class="error" id="error"></p>
+  <!-- Shown only when the deployment has a passcode set. -->
+  <section id="gate" hidden>
+    <p class="hint">This list is passcode protected. Ask whoever set it up.</p>
+    <form id="gateForm">
+      <input id="passcode" type="password" placeholder="Passcode" autocomplete="current-password">
+      <button type="submit">Unlock</button>
+    </form>
+    <p class="error" id="gateError"></p>
+  </section>
 
-  <ul id="list"></ul>
+  <section id="app" hidden>
+    <p class="count" id="count"></p>
+
+    <form id="form">
+      <input id="name" placeholder="Add a member…" autocomplete="off">
+      <button type="submit">Add</button>
+    </form>
+    <p class="error" id="error"></p>
+
+    <ul id="list"></ul>
+
+    <p class="lock" id="lockRow" hidden><button type="button" id="lock">Lock this device</button></p>
+  </section>
 </div>
 
 <script>
+const PASS_KEY = 'bookclub-passcode';
 const $list = document.getElementById('list');
 const $count = document.getElementById('count');
 const $error = document.getElementById('error');
 const $name = document.getElementById('name');
+const $gate = document.getElementById('gate');
+const $app = document.getElementById('app');
+const $gateError = document.getElementById('gateError');
+const $passcode = document.getElementById('passcode');
+const $lockRow = document.getElementById('lockRow');
+
+let passcode = '';
+try { passcode = localStorage.getItem(PASS_KEY) || ''; } catch {}
+
+// Every API call carries the passcode when we have one. A 401 means the
+// deployment is gated and what we have (if anything) is wrong.
+async function api(path, opts = {}) {
+  const headers = Object.assign({}, opts.headers || {});
+  if (passcode) headers['X-Club-Passcode'] = passcode;
+  return fetch(path, Object.assign({}, opts, { headers }));
+}
+
+function showGate(message) {
+  $app.hidden = true;
+  $gate.hidden = false;
+  $gateError.textContent = message || '';
+  $passcode.focus();
+}
+
+function showApp() {
+  $gate.hidden = true;
+  $app.hidden = false;
+  $lockRow.hidden = !passcode;
+}
 
 function fmt(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -110,10 +164,6 @@ function render(members) {
   }
 }
 
-async function load() {
-  render(await (await fetch('/api/members')).json());
-}
-
 function disarmAll() {
   for (const b of $list.querySelectorAll('.remove.armed')) {
     clearTimeout(b.timer);
@@ -123,10 +173,33 @@ function disarmAll() {
   }
 }
 
+async function load() {
+  const res = await api('/api/members');
+  if (res.status === 401) {
+    return showGate(passcode ? 'That passcode did not work.' : '');
+  }
+  showApp();
+  render(await res.json());
+}
+
 async function remove(m) {
-  await fetch('/api/members/' + encodeURIComponent(m.id), { method: 'DELETE' });
+  await api('/api/members/' + encodeURIComponent(m.id), { method: 'DELETE' });
   load();
 }
+
+document.getElementById('gateForm').onsubmit = (e) => {
+  e.preventDefault();
+  passcode = $passcode.value.trim();
+  try { localStorage.setItem(PASS_KEY, passcode); } catch {}
+  $passcode.value = '';
+  load();
+};
+
+document.getElementById('lock').onclick = () => {
+  passcode = '';
+  try { localStorage.removeItem(PASS_KEY); } catch {}
+  load();
+};
 
 document.getElementById('form').onsubmit = async (e) => {
   e.preventDefault();
@@ -134,12 +207,13 @@ document.getElementById('form').onsubmit = async (e) => {
   const name = $name.value.trim();
   if (!name) return;
 
-  const res = await fetch('/api/members', {
+  const res = await api('/api/members', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
   });
 
+  if (res.status === 401) return showGate('That passcode did not work.');
   if (!res.ok) {
     $error.textContent = (await res.json()).error;
     return;

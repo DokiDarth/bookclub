@@ -7,9 +7,12 @@ const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 
 const PORT = process.env.PORT || 3000;
+// Optional shared passcode, matching the deployed Worker's CLUB_PASSCODE secret.
+// Unset means the app is open to anyone who can reach it.
+const CLUB_PASSCODE = process.env.CLUB_PASSCODE || '';
 const DB_FILE = path.join(__dirname, 'members.db');
 const LEGACY_FILE = path.join(__dirname, 'members.json');
-const INDEX_FILE = path.join(__dirname, 'index.html');
+const INDEX_FILE = path.join(__dirname, 'public', 'index.html');
 
 const db = new DatabaseSync(DB_FILE);
 
@@ -69,6 +72,14 @@ function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// Constant-time-ish compare so a wrong passcode doesn't leak its length by timing.
+function passcodeMatches(given, expected) {
+  if (typeof given !== 'string' || given.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
+}
+
 function send(res, status, body, type = 'application/json') {
   res.writeHead(status, { 'Content-Type': type });
   res.end(type === 'application/json' ? JSON.stringify(body) : body);
@@ -91,6 +102,12 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
     return send(res, 200, fs.readFileSync(INDEX_FILE, 'utf8'), 'text/html; charset=utf-8');
+  }
+
+  if (CLUB_PASSCODE && url.pathname.startsWith('/api/')) {
+    if (!passcodeMatches(req.headers['x-club-passcode'] || '', CLUB_PASSCODE)) {
+      return send(res, 401, { error: 'passcode required' });
+    }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/members') {
