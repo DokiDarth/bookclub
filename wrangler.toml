@@ -1,5 +1,5 @@
 name = "bookclub"
-main = "worker.js"
+main = "worker.mjs"
 compatibility_date = "2025-01-01"
 
 # Serves everything in public/ (index.html). Requests under /api/ fall

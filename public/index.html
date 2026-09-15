@@ -113,12 +113,18 @@ function showGate(message) {
   $app.hidden = true;
   $gate.hidden = false;
   $gateError.textContent = message || '';
+  // Drop any names already rendered — hiding the section would leave them
+  // sitting in the DOM, which makes "Lock this device" a lie.
+  $list.innerHTML = '';
+  $count.textContent = '';
+  $error.textContent = '';
   $passcode.focus();
 }
 
 function showApp() {
   $gate.hidden = true;
   $app.hidden = false;
+  $gateError.textContent = '';
   $lockRow.hidden = !passcode;
 }
 

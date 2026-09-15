@@ -3,6 +3,9 @@ members.db
 members.db-wal
 members.db-shm
 
+# Generated from members.db — contains real names
+seed.sql
+
 # Pre-SQLite data and its backup
 members.json
 members.json.tmp
