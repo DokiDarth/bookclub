@@ -1,4 +1,4 @@
-# Book Club
+# Arsenal Fan Club
 
 A list of members. No dependencies — Node's standard library only.
 

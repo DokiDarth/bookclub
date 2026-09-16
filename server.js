@@ -1,4 +1,4 @@
-// Book club members — zero dependencies, Node stdlib only (node:sqlite).
+// Arsenal Fan Club members — zero dependencies, Node stdlib only (node:sqlite).
 // Run: node server.js   (then open http://localhost:3000)
 
 const http = require('http');
@@ -149,5 +149,5 @@ const server = http.createServer(async (req, res) => {
 migrateLegacyFile();
 
 server.listen(PORT, () => {
-  console.log(`Book club running at http://localhost:${PORT} (${countAll.get().n} member(s))`);
+  console.log(`Arsenal Fan Club running at http://localhost:${PORT} (${countAll.get().n} member(s))`);
 });

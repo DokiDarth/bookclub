@@ -1,4 +1,4 @@
-// Book club members — Cloudflare Worker + D1.
+// Arsenal Fan Club members — Cloudflare Worker + D1.
 // The local Node version (server.js) speaks the same HTTP API; this file is
 // the deployed one. Static files come from public/ via the assets binding.
 
